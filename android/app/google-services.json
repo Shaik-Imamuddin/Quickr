@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "892431815654",
+    "project_id": "quickr-f979e",
+    "storage_bucket": "quickr-f979e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892431815654:android:9ae544ef60256bb5b8bc27",
+        "android_client_info": {
+          "package_name": "com.example.quickr"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaY6msbRsGySQi7klNmmhDmM9kLDOP7Wo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
