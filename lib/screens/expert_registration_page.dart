@@ -55,6 +55,11 @@ class _ExpertRegistrationPageState extends State<ExpertRegistrationPage> {
         "createdAt": FieldValue.serverTimestamp(),
       });
 
+      nameController.clear();
+      emailController.clear();
+      phoneController.clear();
+      passwordController.clear();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Expert account created successfully")),
       );
@@ -101,6 +106,8 @@ class _ExpertRegistrationPageState extends State<ExpertRegistrationPage> {
         "provider": "google",
         "createdAt": FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Google Sign-In successful")),
