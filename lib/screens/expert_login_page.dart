@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'expert_profile_page.dart';
+import './expert_registration_page.dart';
 
 class ExpertLogin extends StatefulWidget {
   const ExpertLogin({super.key});
@@ -343,7 +344,14 @@ class _ExpertLoginState extends State<ExpertLogin> {
                   const SizedBox(height: 25),
 
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ExpertRegistrationPage(),
+                        ),
+                      );
+                    },
                     child: Text.rich(
                       TextSpan(
                         text: "Don’t have an account? ",

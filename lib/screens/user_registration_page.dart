@@ -55,6 +55,11 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
         "createdAt": FieldValue.serverTimestamp(),
       });
 
+      nameController.clear();
+      emailController.clear();
+      phoneController.clear();
+      passwordController.clear();
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
