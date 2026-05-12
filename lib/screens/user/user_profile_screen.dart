@@ -208,8 +208,11 @@ class UserProfileScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 10,
                     backgroundColor: primaryColor,
-                    child: const Icon(Icons.check,
-                        color: Colors.white, size: 13),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 13,
+                    ),
                   ),
                 ],
               ),
@@ -224,7 +227,6 @@ class UserProfileScreen extends StatelessWidget {
             ],
           ),
         ),
-        const Icon(Icons.settings_outlined, color: Color(0xff64748B)),
       ],
     );
   }

@@ -4,6 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import './user_notification.dart';
 import '../ask_question.dart';
+import './available_experts_page.dart';
+import './services_page.dart';
+import './guides_page.dart';
+import './events_page.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -30,14 +34,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
     if (user == null) {
       return const Scaffold(
-        body: Center(
-          child: Text("User not logged in"),
-        ),
+        body: Center(child: Text("User not logged in")),
       );
     }
 
-    final size = MediaQuery.of(context).size;
-    final width = size.width;
+    final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -46,20 +47,19 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           padding: EdgeInsets.only(
             left: width * 0.055,
             right: width * 0.055,
+            top: 18,
             bottom: 100,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _topBackButton(context),
-              const SizedBox(height: 18),
               _header(context, user.uid),
               const SizedBox(height: 20),
               _searchBar(),
               const SizedBox(height: 24),
               _helpCard(context),
               const SizedBox(height: 30),
-              _categorySection(),
+              _categorySection(context),
               const SizedBox(height: 28),
               _dynamicStatsSection(user.uid),
               const SizedBox(height: 28),
@@ -69,32 +69,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _topBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-      },
-      child: Container(
-        height: 48,
-        width: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.arrow_back, size: 28),
       ),
     );
   }
@@ -114,9 +88,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               if (snapshot.hasData && snapshot.data!.exists) {
                 final data =
                     snapshot.data!.data() as Map<String, dynamic>? ?? {};
-                name = data["name"]?.toString().trim().isNotEmpty == true
-                    ? data["name"]
-                    : "User";
+                final fetchedName = data["name"]?.toString().trim() ?? "";
+                name = fetchedName.isNotEmpty ? fetchedName : "User";
               }
 
               return Column(
@@ -133,7 +106,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    "It's a beautiful morning",
+                    "Find expert help instantly",
                     style: TextStyle(
                       color: Color(0xff64748B),
                       fontSize: 15,
@@ -145,7 +118,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.notifications_none, size: 27),
+          icon: const Icon(Icons.notifications_none, size: 29),
           onPressed: () {
             Navigator.push(
               context,
@@ -154,16 +127,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               ),
             );
           },
-        ),
-        GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, "/profile");
-          },
-          child: CircleAvatar(
-            radius: 22,
-            backgroundColor: primaryColor,
-            child: const Icon(Icons.person_outline, color: Colors.white),
-          ),
         ),
       ],
     );
@@ -200,167 +163,136 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: 18,
-            top: 60,
-            child: Container(
-              height: 120,
-              width: 120,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.headphones,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(25, 18, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Get help in\nunder 5 minutes",
+              style: TextStyle(
                 color: Colors.white,
-                size: 70,
+                fontSize: 22,
+                height: 1.25,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          Positioned(
-            right: 22,
-            bottom: 35,
-            child: CircleAvatar(
-              radius: 26,
-              backgroundColor: Colors.white.withOpacity(0.25),
-              child: const Icon(
-                Icons.chat_bubble_outline,
+            const SizedBox(height: 6),
+            const Text(
+              "Connect with verified\nexperts whenever you need them",
+              style: TextStyle(
                 color: Colors.white,
-                size: 28,
+                fontSize: 15,
+                height: 1.35,
               ),
             ),
-          ),
-          Positioned(right: 110, top: 25, child: _bubble(16)),
-          Positioned(right: 28, top: 30, child: _bubble(30)),
-          Positioned(right: 122, top: 100, child: _bubble(8)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(25, 18, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Get help in\nunder 5 minutes",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    height: 1.25,
-                    fontWeight: FontWeight.bold,
+            const Spacer(),
+            GestureDetector(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AskQuestionScreen(),
                   ),
+                );
+              },
+              child: Container(
+                height: 40,
+                width: 156,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  "Connect with verified\nexperts\nwhenever you need them",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AskQuestionScreen(),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline,
+                        color: primaryColor, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Get help now",
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  },
-                  child: Container(
-                    height: 40,
-                    width: 156,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          color: primaryColor,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Get help now",
-                          style: TextStyle(
-                            color: primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              ],
-            ),
-          ),
-        ],
+                  ],
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 
-  Widget _bubble(double size) {
-    return Container(
-      height: size,
-      width: size,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-
-  Widget _categorySection() {
+  Widget _categorySection(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _category(
-          Icons.chat_bubble_outline,
+          context,
+          Icons.support_agent,
           "Support",
           const Color(0xffF3E8FF),
           primaryColor,
+          AvailableExpertsPage(primaryColor: primaryColor),
         ),
         _category(
+          context,
           Icons.grid_view_rounded,
           "Services",
           const Color(0xffE0F2FE),
           const Color(0xff2563EB),
+          ServicesPage(primaryColor: primaryColor),
         ),
         _category(
+          context,
           Icons.menu_book_outlined,
           "Guides",
           const Color(0xffDCFCE7),
           const Color(0xff16A34A),
+          GuidesPage(primaryColor: primaryColor),
         ),
         _category(
-          Icons.build_outlined,
-          "Design",
+          context,
+          Icons.event_available_outlined,
+          "Events",
           const Color(0xffFFE4E6),
           const Color(0xffEF4444),
+          EventsPage(primaryColor: primaryColor),
         ),
       ],
     );
   }
 
-  Widget _category(IconData icon, String title, Color bg, Color color) {
-    return Column(
-      children: [
-        Container(
-          height: 56,
-          width: 56,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(16),
+  Widget _category(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color bg,
+    Color color,
+    Widget page,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+      },
+      child: Column(
+        children: [
+          Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 27),
           ),
-          child: Icon(icon, color: color, size: 27),
-        ),
-        const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontSize: 13)),
-      ],
+          const SizedBox(height: 8),
+          Text(title, style: const TextStyle(fontSize: 13)),
+        ],
+      ),
     );
   }
 
@@ -374,7 +306,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-
           total = _toInt(data["totalRequests"]);
           answered = _toInt(data["answeredRequests"]);
         }
@@ -427,10 +358,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           const SizedBox(height: 5),
           Text(
             title,
-            style: const TextStyle(
-              color: Color(0xff64748B),
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Color(0xff64748B), fontSize: 12),
           ),
         ],
       ),
@@ -470,20 +398,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Text(
-              "Error: ${snapshot.error}",
-              style: const TextStyle(color: Colors.red),
-            ),
-          );
+          return Text("Error: ${snapshot.error}");
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         List<QueryDocumentSnapshot> docs = snapshot.data?.docs ?? [];
@@ -491,17 +410,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         docs.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>? ?? {};
           final bData = b.data() as Map<String, dynamic>? ?? {};
-
           final aTime = aData["createdAt"];
           final bTime = bData["createdAt"];
 
           if (aTime is Timestamp && bTime is Timestamp) {
             return bTime.compareTo(aTime);
           }
-
-          if (aTime is Timestamp) return -1;
-          if (bTime is Timestamp) return 1;
-
           return 0;
         });
 
@@ -527,7 +441,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         return Column(
           children: docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>? ?? {};
-
             final title = data["title"]?.toString() ?? "Untitled";
             final skill = data["skill"]?.toString() ?? "Q";
             final expertName = data["expertName"]?.toString() ?? "";
@@ -557,12 +470,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                        Text(title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         Text(
                           expertName.isEmpty
@@ -592,10 +504,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     Color bg = const Color(0xffFEF3C7);
     Color color = const Color(0xffD97706);
 
-    if (status == "In Progress") {
-      bg = const Color(0xffFEF3C7);
-      color = const Color(0xffD97706);
-    } else if (status == "Completed") {
+    if (status == "Completed") {
       bg = const Color(0xffDCFCE7);
       color = const Color(0xff16A34A);
     }

@@ -28,31 +28,34 @@ class _UserMainScreenState extends State<UserMainScreen> {
     return Scaffold(
       body: pages[selectedIndex],
 
-      floatingActionButton: Container(
-        height: 62,
-        width: 62,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: primaryColor,
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-            )
-          ],
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.add_circle_outline,
-              color: Colors.white, size: 34),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const AskQuestionScreen(),
+      floatingActionButton: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AskQuestionScreen(),
+            ),
+          );
+        },
+        child: Container(
+          height: 62,
+          width: 62,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: primaryColor,
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
               ),
-            );
-          },
+            ],
+          ),
+          child: const Icon(
+            Icons.add_circle_outline,
+            color: Colors.white,
+            size: 34,
+          ),
         ),
       ),
 
