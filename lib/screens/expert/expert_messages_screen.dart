@@ -5,18 +5,19 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class UserChatScreen extends StatefulWidget {
-  const UserChatScreen({super.key});
+class ExpertMessagesScreen extends StatefulWidget {
+  const ExpertMessagesScreen({super.key});
 
   @override
-  State<UserChatScreen> createState() => _UserChatScreenState();
+  State<ExpertMessagesScreen> createState() => _ExpertMessagesScreenState();
 }
 
-class _UserChatScreenState extends State<UserChatScreen> {
-  final Color primaryColor = const Color(0xffA020F0);
-  final TextEditingController searchController = TextEditingController();
+class _ExpertMessagesScreenState extends State<ExpertMessagesScreen> {
+  static const Color primaryColor = Color.fromARGB(255, 241, 179, 0);
 
+  final TextEditingController searchController = TextEditingController();
   String filter = "All";
+
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
   @override
@@ -33,43 +34,62 @@ class _UserChatScreenState extends State<UserChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = currentUser;
+    final expert = currentUser;
 
-    if (user == null) {
-      return const Scaffold(body: Center(child: Text("User not logged in")));
+    if (expert == null) {
+      return const Scaffold(body: Center(child: Text("Expert not logged in")));
     }
 
     final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F6F8),
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 0,
-            top: 6,
+            left: width * 0.055,
+            right: width * 0.055,
+            bottom: 12,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _topBack(context),
+              const SizedBox(height: 18),
               _titleRow(),
-              const SizedBox(height: 22),
-              _searchBar(),
               const SizedBox(height: 20),
+              _searchBar(),
+              const SizedBox(height: 16),
               _filters(),
               const SizedBox(height: 12),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 2),
-                  child: _peopleWithChats(user.uid),
-                ),
-              ),
+              Expanded(child: _peopleWithChats(expert.uid)),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _topBack(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushReplacementNamed(context, "/expertHome");
+      },
+      child: Container(
+        height: 46,
+        width: 46,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.arrow_back, size: 26, color: Color(0xff1E293B)),
       ),
     );
   }
@@ -79,19 +99,16 @@ class _UserChatScreenState extends State<UserChatScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Chat",
+          "Messages",
           style: TextStyle(
-            fontSize: 27,
+            fontSize: 25,
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: 4),
+        SizedBox(height: 3),
         Text(
-          "Connect with users and experts",
-          style: TextStyle(
-            color: Color(0xff64748B),
-            fontSize: 14,
-          ),
+          "Chat with users and experts",
+          style: TextStyle(color: Color(0xff64748B)),
         ),
       ],
     );
@@ -136,7 +153,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xffF3E8FF) : const Color(0xffF1F2F6),
+          color: selected ? const Color(0xffFFF4CC) : const Color(0xffF1F2F6),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Text(
@@ -151,9 +168,9 @@ class _UserChatScreenState extends State<UserChatScreen> {
     );
   }
 
-  Widget _peopleWithChats(String currentUserId) {
+  Widget _peopleWithChats(String expertId) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _getAllUsersAndExperts(currentUserId),
+      future: _getAllUsersAndExperts(expertId),
       builder: (context, peopleSnapshot) {
         if (peopleSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -166,7 +183,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection("chats")
-              .where("members", arrayContains: currentUserId)
+              .where("members", arrayContains: expertId)
               .snapshots(),
           builder: (context, chatSnapshot) {
             if (chatSnapshot.connectionState == ConnectionState.waiting) {
@@ -175,14 +192,16 @@ class _UserChatScreenState extends State<UserChatScreen> {
 
             List<Map<String, dynamic>> people = peopleSnapshot.data ?? [];
             final chatDocs = chatSnapshot.data?.docs ?? [];
+
             final Map<String, Map<String, dynamic>> chatMap = {};
 
             for (var chat in chatDocs) {
-              chatMap[chat.id] = chat.data() as Map<String, dynamic>? ?? {};
+              final chatData = chat.data() as Map<String, dynamic>? ?? {};
+              chatMap[chat.id] = chatData;
             }
 
             for (var person in people) {
-              final chatId = _chatId(currentUserId, person["id"]);
+              final chatId = _chatId(expertId, person["id"]);
               final chatData = chatMap[chatId];
 
               person["chatId"] = chatId;
@@ -192,7 +211,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
 
               final unreadCounts =
                   chatData?["unreadCounts"] as Map<String, dynamic>? ?? {};
-              person["unreadCount"] = unreadCounts[currentUserId] ?? 0;
+              person["unreadCount"] = unreadCounts[expertId] ?? 0;
             }
 
             if (filter != "All") {
@@ -243,14 +262,14 @@ class _UserChatScreenState extends State<UserChatScreen> {
                 final name = person["name"];
                 final email = person["email"];
                 final role = person["role"];
-                final lastMessage = person["lastMessage"] ?? "";
                 final unreadCount = person["unreadCount"] ?? 0;
+                final lastMessage = person["lastMessage"] ?? "";
                 final isExpert = role.toString().toLowerCase() == "expert";
 
                 return GestureDetector(
                   onTap: () async {
-                    final finalChatId = await _createOrGetChatRoom(
-                      currentUserId: currentUserId,
+                    final chatId = await _createOrGetChatRoom(
+                      currentUserId: expertId,
                       receiverId: receiverId,
                       receiverName: name,
                       receiverRole: role,
@@ -261,8 +280,8 @@ class _UserChatScreenState extends State<UserChatScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ChatDetailScreen(
-                          chatId: finalChatId,
+                        builder: (_) => ExpertChatDetailScreen(
+                          chatId: chatId,
                           receiverId: receiverId,
                           receiverName: name,
                           receiverRole: role,
@@ -275,7 +294,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: unreadCount > 0
-                          ? const Color(0xffFAF5FF)
+                          ? const Color(0xffFFF8E1)
                           : Colors.white,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: const Color(0xffE5E7EB)),
@@ -293,7 +312,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
                           radius: 27,
                           backgroundColor: isExpert
                               ? const Color(0xffDCFCE7)
-                              : const Color(0xffF3E8FF),
+                              : const Color(0xffFFF4CC),
                           child: Text(
                             _getInitials(name),
                             style: TextStyle(
@@ -340,7 +359,6 @@ class _UserChatScreenState extends State<UserChatScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
                         if (unreadCount > 0)
                           Container(
                             height: 24,
@@ -369,7 +387,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
                             decoration: BoxDecoration(
                               color: isExpert
                                   ? const Color(0xffDCFCE7)
-                                  : const Color(0xffF3E8FF),
+                                  : const Color(0xffFFF4CC),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -417,9 +435,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
         "id": doc.id,
         "name": data["name"]?.toString() ?? "Unknown User",
         "email": data["email"]?.toString() ?? "",
-        "role": data["role"]?.toString().isNotEmpty == true
-            ? data["role"].toString()
-            : "User",
+        "role": "User",
       });
     }
 
@@ -495,13 +511,13 @@ class _UserChatScreenState extends State<UserChatScreen> {
   }
 }
 
-class ChatDetailScreen extends StatefulWidget {
+class ExpertChatDetailScreen extends StatefulWidget {
   final String chatId;
   final String receiverId;
   final String receiverName;
   final String receiverRole;
 
-  const ChatDetailScreen({
+  const ExpertChatDetailScreen({
     super.key,
     required this.chatId,
     required this.receiverId,
@@ -510,11 +526,12 @@ class ChatDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatDetailScreen> createState() => _ChatDetailScreenState();
+  State<ExpertChatDetailScreen> createState() => _ExpertChatDetailScreenState();
 }
 
-class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  final Color primaryColor = const Color(0xffA020F0);
+class _ExpertChatDetailScreenState extends State<ExpertChatDetailScreen> {
+  static const Color primaryColor = Color.fromARGB(255, 241, 179, 0);
+
   final TextEditingController messageController = TextEditingController();
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
@@ -532,21 +549,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> markMessagesAsRead() async {
-    final user = currentUser;
-    if (user == null) return;
+    final expert = currentUser;
+    if (expert == null) return;
 
     await FirebaseFirestore.instance.collection("chats").doc(widget.chatId).set({
-      "unreadCounts": {
-        user.uid: 0,
-      }
+      "unreadCounts": {expert.uid: 0}
     }, SetOptions(merge: true));
   }
 
   Future<void> sendMessage() async {
-    final user = currentUser;
+    final expert = currentUser;
     final message = messageController.text.trim();
 
-    if (user == null || message.isEmpty) return;
+    if (expert == null || message.isEmpty) return;
 
     messageController.clear();
 
@@ -558,7 +573,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     await messageRef.set({
       "messageId": messageRef.id,
-      "senderId": user.uid,
+      "senderId": expert.uid,
       "receiverId": widget.receiverId,
       "message": message,
       "type": "text",
@@ -568,7 +583,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     await FirebaseFirestore.instance.collection("chats").doc(widget.chatId).set({
       "lastMessage": message,
-      "lastSenderId": user.uid,
+      "lastSenderId": expert.uid,
       "lastMessageTime": FieldValue.serverTimestamp(),
       "unreadCounts": {
         widget.receiverId: FieldValue.increment(1),
@@ -577,8 +592,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> pickAndSendFile() async {
-    final user = currentUser;
-    if (user == null) return;
+    final expert = currentUser;
+    if (expert == null) return;
 
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -616,7 +631,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       await messageRef.set({
         "messageId": messageRef.id,
-        "senderId": user.uid,
+        "senderId": expert.uid,
         "receiverId": widget.receiverId,
         "message": fileName,
         "fileName": fileName,
@@ -629,9 +644,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         "isRead": false,
       });
 
-      await FirebaseFirestore.instance.collection("chats").doc(widget.chatId).set({
+      await FirebaseFirestore.instance
+          .collection("chats")
+          .doc(widget.chatId)
+          .set({
         "lastMessage": "📎 $fileName",
-        "lastSenderId": user.uid,
+        "lastSenderId": expert.uid,
         "lastMessageTime": FieldValue.serverTimestamp(),
         "unreadCounts": {
           widget.receiverId: FieldValue.increment(1),
@@ -656,21 +674,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = currentUser;
+    final expert = currentUser;
 
-    if (user == null) {
-      return const Scaffold(body: Center(child: Text("User not logged in")));
+    if (expert == null) {
+      return const Scaffold(body: Center(child: Text("Expert not logged in")));
     }
 
     final isExpert = widget.receiverRole.toLowerCase() == "expert";
 
     return Scaffold(
-      backgroundColor: const Color(0xffF8FAFC),
+      backgroundColor: const Color(0xFFF5F6F8),
       body: SafeArea(
         child: Column(
           children: [
             _chatHeader(context, isExpert),
-            Expanded(child: _messagesList(user.uid)),
+            Expanded(child: _messagesList(expert.uid)),
             _messageInput(),
           ],
         ),
@@ -680,7 +698,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Widget _chatHeader(BuildContext context, bool isExpert) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       color: Colors.white,
       child: Row(
         children: [
@@ -691,7 +709,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           CircleAvatar(
             radius: 22,
             backgroundColor:
-                isExpert ? const Color(0xffDCFCE7) : const Color(0xffF3E8FF),
+                isExpert ? const Color(0xffDCFCE7) : const Color(0xffFFF4CC),
             child: Text(
               _getInitials(widget.receiverName),
               style: TextStyle(
@@ -720,7 +738,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   widget.receiverRole,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Color(0xff64748B),
+                    color: Color(0xFF667085),
                   ),
                 ),
               ],
@@ -752,7 +770,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         docs.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>? ?? {};
           final bData = b.data() as Map<String, dynamic>? ?? {};
-
           final aTime = aData["createdAt"];
           final bTime = bData["createdAt"];
 
@@ -786,7 +803,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             if (index > 0) {
               final previousData =
                   docs[index - 1].data() as Map<String, dynamic>? ?? {};
-              final previousDate = _dateFromTimestamp(previousData["createdAt"]);
+              final previousDate =
+                  _dateFromTimestamp(previousData["createdAt"]);
               showDateHeader = !_isSameDay(currentDate, previousDate);
             }
 
@@ -794,7 +812,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               children: [
                 if (showDateHeader) _dateHeader(currentDate),
                 Align(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment:
+                      isMe ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(
@@ -814,14 +833,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
                       border: isMe
                           ? null
-                          : Border.all(color: const Color(0xffE5E7EB)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        )
-                      ],
+                          : Border.all(color: const Color(0xFFE0E4EA)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -833,7 +845,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           Text(
                             data["message"]?.toString() ?? "",
                             style: TextStyle(
-                              color: isMe ? Colors.white : Colors.black,
+                              color: isMe
+                                  ? Colors.white
+                                  : const Color(0xFF2D3648),
                               fontSize: 15.5,
                               height: 1.35,
                             ),
@@ -882,7 +896,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isMe ? Colors.white : Colors.black,
+                color: isMe ? Colors.white : const Color(0xFF2D3648),
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
