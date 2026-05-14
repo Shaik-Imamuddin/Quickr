@@ -51,9 +51,7 @@ class UserProfileScreen extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _backButton(context),
-                  const SizedBox(height: 30),
-                  _profileHeader(name),
+                  _profileHeader(name,email),
                   const SizedBox(height: 25),
                   _stats(user.uid),
                   const SizedBox(height: 32),
@@ -139,31 +137,7 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _backButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (Navigator.canPop(context)) Navigator.pop(context);
-      },
-      child: Container(
-        height: 48,
-        width: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: const Icon(Icons.arrow_back, size: 28),
-      ),
-    );
-  }
-
-  Widget _profileHeader(String name) {
+  Widget _profileHeader(String name, String email) {
     String initials = "U";
 
     if (name.toString().trim().isNotEmpty) {
@@ -217,11 +191,14 @@ class UserProfileScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
-                "● Active (online)",
-                style: TextStyle(
-                  color: Color(0xff16A34A),
-                  fontWeight: FontWeight.bold,
+              Text(
+                email.isNotEmpty ? email : "No email available",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xff64748B),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
             ],

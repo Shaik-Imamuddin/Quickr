@@ -108,11 +108,58 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, "/expertNotifications");
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("expert_notifications")
+                  .where("expertId", isEqualTo: user!.uid)
+                  .where("isRead", isEqualTo: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final hasUnread =
+                    snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final unreadDocs = snapshot.data?.docs ?? [];
+
+                        for (var doc in unreadDocs) {
+                          await FirebaseFirestore.instance
+                              .collection("expert_notifications")
+                              .doc(doc.id)
+                              .update({
+                            "isRead": true,
+                          });
+                        }
+
+                        if (!context.mounted) return;
+
+                        Navigator.pushNamed(context, "/expertNotifications");
+                      },
+                      child: const Icon(
+                        Icons.notifications_none,
+                        size: 27,
+                      ),
+                    ),
+
+                    if (hasUnread)
+                      Positioned(
+                        right: -1,
+                        top: -1,
+                        child: Container(
+                          height: 10,
+                          width: 10,
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
               },
-              child: const Icon(Icons.notifications_none, size: 27),
             ),
           ],
         );
@@ -402,23 +449,34 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
           const Expanded(
             child: Text(
               "Quantum/Algo\nHackathon\n2025\nBe a part of something big.",
-              style: TextStyle(color: Colors.white, height: 1.4),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Text(
-              "View Details",
               style: TextStyle(
-                color: Color(0xffFF5A00),
-                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                height: 1.4,
               ),
             ),
-          )
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, "/createEvent");
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Text(
+                "Create",
+                style: TextStyle(
+                  color: Color(0xffFF5A00),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
