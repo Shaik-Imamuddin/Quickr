@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../ask_question.dart';
+import './review_page.dart';
 
 class UserRequestsScreen extends StatefulWidget {
   const UserRequestsScreen({super.key});
@@ -40,8 +42,6 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _backButton(context),
-              const SizedBox(height: 26),
               _header(context),
               const SizedBox(height: 28),
               _filters(),
@@ -54,30 +54,6 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _backButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (Navigator.canPop(context)) Navigator.pop(context);
-      },
-      child: Container(
-        height: 48,
-        width: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: const Icon(Icons.arrow_back, size: 28),
       ),
     );
   }
@@ -195,11 +171,24 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _stat("$inProgress", "Progress", const Color(0xffD97706),
-                const Color(0xffFEFCE8)),
-            _stat("$completed", "Completed", const Color(0xff16A34A),
-                const Color(0xffDCFCE7)),
-            _stat("$total", "Total", primaryColor, const Color(0xffFAF5FF)),
+            _stat(
+              "$inProgress",
+              "Progress",
+              const Color(0xffD97706),
+              const Color(0xffFEFCE8),
+            ),
+            _stat(
+              "$completed",
+              "Completed",
+              const Color(0xff16A34A),
+              const Color(0xffDCFCE7),
+            ),
+            _stat(
+              "$total",
+              "Total",
+              primaryColor,
+              const Color(0xffFAF5FF),
+            ),
           ],
         );
       },
@@ -399,13 +388,17 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
                               color: Color(0xff94A3B8),
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              _getTimeText(data["createdAt"]),
-                              style: const TextStyle(
-                                color: Color(0xff64748B),
-                                fontSize: 12,
+                            Expanded(
+                              child: Text(
+                                _getTimeText(data["createdAt"]),
+                                style: const TextStyle(
+                                  color: Color(0xff64748B),
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
+                            if (status == "Completed")
+                              _reviewButton(doc.id, data),
                           ],
                         )
                       ],
@@ -417,6 +410,40 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
           }).toList(),
         );
       },
+    );
+  }
+
+  Widget _reviewButton(String requestId, Map<String, dynamic> data) {
+    final bool reviewSubmitted = data["reviewSubmitted"] == true;
+
+    return GestureDetector(
+      onTap: reviewSubmitted
+          ? null
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ReviewPage(
+                    requestId: requestId,
+                  ),
+                ),
+              );
+            },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: reviewSubmitted ? const Color(0xffE5E7EB) : primaryColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          reviewSubmitted ? "Reviewed" : "Review",
+          style: TextStyle(
+            color: reviewSubmitted ? const Color(0xff64748B) : Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 

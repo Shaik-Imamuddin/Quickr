@@ -7,6 +7,7 @@ import 'screens/splash_screen.dart';
 import 'screens/user_login_page.dart';
 import 'screens/expert_login_page.dart';
 import './screens/expert_profile_page.dart';
+import 'screens/create_event_screen.dart';
 
 // 🔽 User module screens
 import 'screens/user_main_page.dart';
@@ -59,7 +60,7 @@ class MyApp extends StatelessWidget {
         "/requests": (context) => const UserRequestsScreen(),
         "/notifications": (context) => const UserNotificationsScreen(),
         "/profile": (context) => const UserProfileScreen(),
-
+        "/createEvent": (context) => const CreateEventScreen(),
         // Expert
         "/expertCoins": (context) => const ExpertCoinsPage(),
         "/expertHome": (context) => const ExpertProfilePage(),

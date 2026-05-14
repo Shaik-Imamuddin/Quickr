@@ -490,8 +490,6 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _topHeader(context),
-                  const SizedBox(height: 22),
                   _profileCard(
                     uid: user.uid,
                     name: name,
@@ -593,35 +591,6 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
           },
         ),
       ),
-    );
-  }
-
-  Widget _topHeader(BuildContext context) {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () {
-            Navigator.pushReplacementNamed(context, "/expertHome");
-          },
-          child: Container(
-            height: 46,
-            width: 46,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Icon(Icons.arrow_back, size: 26, color: darkText),
-          ),
-        ),
-        const Spacer(),
-      ],
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,14 +20,21 @@ class UserHomeScreen extends StatefulWidget {
 
 class _UserHomeScreenState extends State<UserHomeScreen> {
   final Color primaryColor = const Color(0xffA020F0);
-  final TextEditingController searchController = TextEditingController();
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
+  Future<void> markNotificationsAsRead(String uid) async {
+    final unread = await FirebaseFirestore.instance
+        .collection("notifications")
+        .where("userId", isEqualTo: uid)
+        .where("isRead", isEqualTo: false)
+        .get();
+
+    for (var doc in unread.docs) {
+      await doc.reference.update({
+        "isRead": true,
+      });
+    }
   }
 
   @override
@@ -55,7 +64,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             children: [
               _header(context, user.uid),
               const SizedBox(height: 20),
-              _searchBar(),
+              AdvertisementSlider(primaryColor: primaryColor),
               const SizedBox(height: 24),
               _helpCard(context),
               const SizedBox(height: 30),
@@ -117,37 +126,52 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             },
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.notifications_none, size: 29),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const UserNotificationsScreen(),
-              ),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("notifications")
+              .where("userId", isEqualTo: uid)
+              .where("isRead", isEqualTo: false)
+              .snapshots(),
+          builder: (context, snapshot) {
+            final hasUnread =
+                snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none, size: 29),
+                  onPressed: () async {
+                    await markNotificationsAsRead(uid);
+
+                    if (!context.mounted) return;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UserNotificationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                if (hasUnread)
+                  Positioned(
+                    right: 10,
+                    top: 10,
+                    child: Container(
+                      height: 9,
+                      width: 9,
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),
       ],
-    );
-  }
-
-  Widget _searchBar() {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: const Color(0xffF1F2F6),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: TextField(
-        controller: searchController,
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          prefixIcon: Icon(Icons.search, color: Color(0xff94A3B8)),
-          hintText: "What do you need help with?",
-          hintStyle: TextStyle(color: Color(0xff94A3B8)),
-        ),
-      ),
     );
   }
 
@@ -206,8 +230,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.chat_bubble_outline,
-                        color: primaryColor, size: 18),
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      color: primaryColor,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       "Get help now",
@@ -317,12 +344,24 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _stat("$total", "Requests", primaryColor, const Color(0xffFAF5FF)),
-            _stat("5m", "Avg time", const Color(0xffDB2777),
-                const Color(0xffFDF2F8)),
-            _stat("4.9", "Rating", const Color(0xffD97706),
-                const Color(0xffFEFCE8)),
-            _stat("$satisfaction%", "Satisfaction", primaryColor,
-                const Color(0xffFAF5FF)),
+            _stat(
+              "5m",
+              "Avg time",
+              const Color(0xffDB2777),
+              const Color(0xffFDF2F8),
+            ),
+            _stat(
+              "4.9",
+              "Rating",
+              const Color(0xffD97706),
+              const Color(0xffFEFCE8),
+            ),
+            _stat(
+              "$satisfaction%",
+              "Satisfaction",
+              primaryColor,
+              const Color(0xffFAF5FF),
+            ),
           ],
         );
       },
@@ -416,6 +455,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           if (aTime is Timestamp && bTime is Timestamp) {
             return bTime.compareTo(aTime);
           }
+
           return 0;
         });
 
@@ -470,11 +510,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           expertName.isEmpty
@@ -523,6 +564,178 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class AdvertisementSlider extends StatefulWidget {
+  final Color primaryColor;
+
+  const AdvertisementSlider({
+    super.key,
+    required this.primaryColor,
+  });
+
+  @override
+  State<AdvertisementSlider> createState() => _AdvertisementSliderState();
+}
+
+class _AdvertisementSliderState extends State<AdvertisementSlider> {
+  late final PageController _pageController;
+  Timer? _adTimer;
+
+  final ValueNotifier<int> currentAdIndex = ValueNotifier<int>(0);
+
+  final int _initialPage = 1000;
+
+  final List<Map<String, dynamic>> ads = [
+    {
+      "title": "Instant Help",
+      "subtitle": "Get expert support within minutes",
+      "icon": Icons.flash_on,
+    },
+    {
+      "title": "Solve Your Doubts",
+      "subtitle": "Connect with experts and clear doubts fast",
+      "icon": Icons.psychology_outlined,
+    },
+    {
+      "title": "Live Expert Chat",
+      "subtitle": "Chat directly with skilled professionals",
+      "icon": Icons.chat_bubble_outline,
+    },
+    {
+      "title": "Project Support",
+      "subtitle": "Get guidance for real-time projects",
+      "icon": Icons.laptop_mac,
+    },
+    {
+      "title": "Learn Faster",
+      "subtitle": "Avoid wasting hours searching online",
+      "icon": Icons.rocket_launch,
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pageController = PageController(initialPage: _initialPage);
+    currentAdIndex.value = _initialPage % ads.length;
+
+    _adTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (!_pageController.hasClients) return;
+
+      final nextPage = _pageController.page!.round() + 1;
+
+      _pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _adTimer?.cancel();
+    _pageController.dispose();
+    currentAdIndex.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 130,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: null,
+            onPageChanged: (index) {
+              currentAdIndex.value = index % ads.length;
+            },
+            itemBuilder: (context, index) {
+              final ad = ads[index % ads.length];
+
+              return Container(
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xffF3E8FF), Color(0xffEDE9FE)],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        ad["icon"] as IconData,
+                        color: widget.primaryColor,
+                        size: 27,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ad["title"].toString(),
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xff1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            ad["subtitle"].toString(),
+                            style: const TextStyle(
+                              color: Color(0xff64748B),
+                              fontSize: 14,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        ValueListenableBuilder<int>(
+          valueListenable: currentAdIndex,
+          builder: (context, activeIndex, child) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                ads.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  height: 8,
+                  width: activeIndex == index ? 22 : 8,
+                  decoration: BoxDecoration(
+                    color: activeIndex == index
+                        ? widget.primaryColor
+                        : const Color(0xffD8B4FE),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

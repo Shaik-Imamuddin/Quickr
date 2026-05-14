@@ -54,8 +54,6 @@ class _ExpertMessagesScreenState extends State<ExpertMessagesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _topBack(context),
-              const SizedBox(height: 18),
               _titleRow(),
               const SizedBox(height: 20),
               _searchBar(),
@@ -66,30 +64,6 @@ class _ExpertMessagesScreenState extends State<ExpertMessagesScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _topBack(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushReplacementNamed(context, "/expertHome");
-      },
-      child: Container(
-        height: 46,
-        width: 46,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.10),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.arrow_back, size: 26, color: Color(0xff1E293B)),
       ),
     );
   }

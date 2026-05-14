@@ -1,13 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'user_chat_screen.dart';
 
 class AvailableExpertsPage extends StatelessWidget {
   final Color primaryColor;
 
   const AvailableExpertsPage({super.key, required this.primaryColor});
 
+  User? get currentUser => FirebaseAuth.instance.currentUser;
+
+  String _chatId(String a, String b) {
+    final ids = [a, b];
+    ids.sort();
+    return "${ids[0]}_${ids[1]}";
+  }
+
+  Future<String> _createOrGetChatRoom({
+    required String currentUserId,
+    required String receiverId,
+    required String receiverName,
+    required String receiverRole,
+  }) async {
+    final chatId = _chatId(currentUserId, receiverId);
+
+    final chatRef = FirebaseFirestore.instance.collection("chats").doc(chatId);
+    final chatDoc = await chatRef.get();
+
+    if (!chatDoc.exists) {
+      await chatRef.set({
+        "chatId": chatId,
+        "members": [currentUserId, receiverId],
+        "createdBy": currentUserId,
+        "receiverId": receiverId,
+        "receiverName": receiverName,
+        "receiverRole": receiverRole,
+        "lastMessage": "",
+        "lastSenderId": "",
+        "lastMessageTime": FieldValue.serverTimestamp(),
+        "unreadCounts": {
+          currentUserId: 0,
+          receiverId: 0,
+        },
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+    }
+
+    return chatId;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text("User not logged in")),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Available Experts"),
@@ -48,12 +100,18 @@ class AvailableExpertsPage extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             itemCount: experts.length,
             itemBuilder: (context, index) {
-              final data = experts[index].data() as Map<String, dynamic>? ?? {};
+              final expertDoc = experts[index];
+              final data = expertDoc.data() as Map<String, dynamic>? ?? {};
 
-              final name = data["name"]?.toString() ?? "Expert";
+              final expertId = expertDoc.id;
+              final name = data["name"]?.toString() ??
+                  data["expertName"]?.toString() ??
+                  "Expert";
+
               final skill = data["skill"]?.toString() ??
                   data["expertise"]?.toString() ??
                   "General Support";
+
               final rating = data["rating"]?.toString() ?? "4.9";
 
               return Container(
@@ -81,18 +139,28 @@ class AvailableExpertsPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name,
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text(skill,
-                              style:
-                                  const TextStyle(color: Color(0xff64748B))),
+                          Text(
+                            skill,
+                            style: const TextStyle(
+                              color: Color(0xff64748B),
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              const Icon(Icons.circle,
-                                  color: Colors.green, size: 10),
+                              const Icon(
+                                Icons.circle,
+                                color: Colors.green,
+                                size: 10,
+                              ),
                               const SizedBox(width: 6),
                               const Text(
                                 "Online",
@@ -102,8 +170,11 @@ class AvailableExpertsPage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 14),
-                              const Icon(Icons.star,
-                                  color: Colors.amber, size: 17),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 17,
+                              ),
                               Text(" $rating"),
                             ],
                           ),
@@ -118,9 +189,24 @@ class AvailableExpertsPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Connect with $name")),
+                      onPressed: () async {
+                        final chatId = await _createOrGetChatRoom(
+                          currentUserId: user.uid,
+                          receiverId: expertId,
+                          receiverName: name,
+                          receiverRole: "Expert",
+                        );
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatDetailScreen(
+                              chatId: chatId,
+                              receiverId: expertId,
+                              receiverName: name,
+                              receiverRole: "Expert",
+                            ),
+                          ),
                         );
                       },
                       child: const Text("Connect"),

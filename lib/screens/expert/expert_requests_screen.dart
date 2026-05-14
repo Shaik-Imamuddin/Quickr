@@ -50,8 +50,6 @@ class _ExpertRequestsScreenState extends State<ExpertRequestsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _backButton(context),
-              const SizedBox(height: 26),
               _header(context),
               const SizedBox(height: 18),
               _searchBar(),
@@ -70,44 +68,19 @@ class _ExpertRequestsScreenState extends State<ExpertRequestsScreen> {
     );
   }
 
-  Widget _backButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushReplacementNamed(context, "/expertHome");
-      },
-      child: Container(
-        height: 46,
-        width: 46,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.10),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.arrow_back,
-          size: 26,
-          color: Color(0xff1E293B),
-        ),
-      ),
-    );
-  }
-
   Widget _header(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "My Requests",
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 4),
               Text(
@@ -115,17 +88,6 @@ class _ExpertRequestsScreenState extends State<ExpertRequestsScreen> {
                 style: TextStyle(color: Color(0xff64748B)),
               ),
             ],
-          ),
-        ),
-        const Icon(Icons.search, size: 27),
-        const SizedBox(width: 14),
-        GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, "/expertProfile");
-          },
-          child: CircleAvatar(
-            backgroundColor: primaryColor,
-            child: const Text("🚀", style: TextStyle(fontSize: 20)),
           ),
         ),
       ],
