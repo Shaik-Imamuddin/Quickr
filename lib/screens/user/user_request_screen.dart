@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../ask_question.dart';
 import './review_page.dart';
 
 class UserRequestsScreen extends StatefulWidget {
@@ -77,25 +75,6 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
             ],
           ),
         ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryColor,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-          ),
-          onPressed: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AskQuestionScreen()),
-            );
-          },
-          child: const Text(
-            "Ask Question",
-            style: TextStyle(color: Colors.white),
-          ),
-        )
       ],
     );
   }
