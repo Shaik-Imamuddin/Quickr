@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import './quicker_agent_page.dart';
+
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
 
@@ -51,7 +53,7 @@ class UserProfileScreen extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _profileHeader(name,email),
+                  _profileHeader(name, email),
                   const SizedBox(height: 25),
                   _stats(user.uid),
                   const SizedBox(height: 32),
@@ -85,31 +87,16 @@ class UserProfileScreen extends StatelessWidget {
 
                   _menuItem(
                     context,
-                    Icons.privacy_tip,
-                    "Privacy Settings",
-                    "Manage your profile privacy",
+                    Icons.smart_toy_outlined,
+                    "Quicker Agent",
+                    "Ask anything with inbuilt AI chatbot",
                     () {
-                      _showPrivacySheet(context, user.uid, data);
-                    },
-                  ),
-
-                  _menuItem(
-                    context,
-                    Icons.bar_chart,
-                    "My Activity",
-                    "View your request activity",
-                    () {
-                      Navigator.pushNamed(context, "/requests");
-                    },
-                  ),
-
-                  _menuItem(
-                    context,
-                    Icons.notifications,
-                    "Notifications",
-                    "Manage your notifications",
-                    () {
-                      Navigator.pushNamed(context, "/notifications");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const QuickerAgentPage(),
+                        ),
+                      );
                     },
                   ),
 
@@ -214,15 +201,16 @@ class UserProfileScreen extends StatelessWidget {
           .collection("requests")
           .where("userId", isEqualTo: uid)
           .snapshots(),
-      builder: (context, snapshot) {
+      builder: (context, requestSnapshot) {
         int requests = 0;
         Set experts = {};
 
-        if (snapshot.hasData) {
-          requests = snapshot.data!.docs.length;
+        if (requestSnapshot.hasData) {
+          requests = requestSnapshot.data!.docs.length;
 
-          for (var doc in snapshot.data!.docs) {
-            final data = doc.data() as Map<String, dynamic>;
+          for (var doc in requestSnapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>? ?? {};
+
             if (data["expertId"] != null &&
                 data["expertId"].toString().isNotEmpty) {
               experts.add(data["expertId"]);
@@ -230,13 +218,46 @@ class UserProfileScreen extends StatelessWidget {
           }
         }
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _statBox("$requests", "Requests"),
-            _statBox("${experts.length}", "Experts"),
-            _statBox("4.8", "Rating"),
-          ],
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection("events").snapshots(),
+          builder: (context, eventSnapshot) {
+            int eventsAttended = 0;
+
+            if (eventSnapshot.hasData) {
+              for (var doc in eventSnapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                final registeredUsers = data["registeredUsers"];
+
+                if (registeredUsers is List) {
+                  final isRegistered = registeredUsers.any((item) {
+                    if (item is String) {
+                      return item == uid;
+                    }
+
+                    if (item is Map) {
+                      return item["userId"] == uid || item["uid"] == uid;
+                    }
+
+                    return false;
+                  });
+
+                  if (isRegistered) {
+                    eventsAttended++;
+                  }
+                }
+              }
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _statBox("$requests", "Requests"),
+                _statBox("${experts.length}", "Experts"),
+                _statBox("$eventsAttended", "Events"),
+              ],
+            );
+          },
         );
       },
     );
@@ -529,8 +550,8 @@ class UserProfileScreen extends StatelessWidget {
                     if (newPassword.length < 6) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content:
-                                Text("Password must be at least 6 characters")),
+                          content: Text("Password must be at least 6 characters"),
+                        ),
                       );
                       return;
                     }
@@ -571,98 +592,6 @@ class UserProfileScreen extends StatelessWidget {
               )
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _showPrivacySheet(
-    BuildContext context,
-    String uid,
-    Map<String, dynamic> data,
-  ) {
-    bool profileVisible = data["profileVisible"] ?? true;
-    bool activityVisible = data["activityVisible"] ?? false;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Privacy Settings",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 18),
-                  SwitchListTile(
-                    value: profileVisible,
-                    activeColor: primaryColor,
-                    title: const Text("Profile Visible"),
-                    subtitle: const Text("Allow experts to view your profile"),
-                    onChanged: (value) {
-                      setModalState(() {
-                        profileVisible = value;
-                      });
-                    },
-                  ),
-                  SwitchListTile(
-                    value: activityVisible,
-                    activeColor: primaryColor,
-                    title: const Text("Activity Visible"),
-                    subtitle: const Text("Show your activity to experts"),
-                    onChanged: (value) {
-                      setModalState(() {
-                        activityVisible = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      onPressed: () async {
-                        await FirebaseFirestore.instance
-                            .collection("users")
-                            .doc(uid)
-                            .update({
-                          "profileVisible": profileVisible,
-                          "activityVisible": activityVisible,
-                          "updatedAt": FieldValue.serverTimestamp(),
-                        });
-
-                        Navigator.pop(context);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Privacy settings updated")),
-                        );
-                      },
-                      child: const Text(
-                        "Save Privacy Settings",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            );
-          },
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import './review_page.dart';
+import './user_chat_screen.dart';
 
 class UserRequestsScreen extends StatefulWidget {
   const UserRequestsScreen({super.key});
@@ -12,9 +13,65 @@ class UserRequestsScreen extends StatefulWidget {
 
 class _UserRequestsScreenState extends State<UserRequestsScreen> {
   final Color primaryColor = const Color(0xffA020F0);
+
   String filter = "All Requests";
+  String sortBy = "Latest";
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
+
+  String _normalizeStatus(dynamic value) {
+    final status = value?.toString().trim().toLowerCase() ?? "";
+
+    if (status == "accepted" ||
+        status == "inprogress" ||
+        status == "in progress") {
+      return "In Progress";
+    }
+
+    if (status == "completed") return "Completed";
+
+    if (status == "cancelled" || status == "canceled") return "Cancelled";
+
+    return "In Progress";
+  }
+
+  String _chatId(String a, String b) {
+    final ids = [a, b];
+    ids.sort();
+    return "${ids[0]}_${ids[1]}";
+  }
+
+  Future<String> _createOrGetChatRoom({
+    required String currentUserId,
+    required String receiverId,
+    required String receiverName,
+    required String receiverRole,
+  }) async {
+    final chatId = _chatId(currentUserId, receiverId);
+    final chatRef = FirebaseFirestore.instance.collection("chats").doc(chatId);
+    final chatDoc = await chatRef.get();
+
+    if (!chatDoc.exists) {
+      await chatRef.set({
+        "chatId": chatId,
+        "members": [currentUserId, receiverId],
+        "createdBy": currentUserId,
+        "receiverId": receiverId,
+        "receiverName": receiverName,
+        "receiverRole": receiverRole,
+        "lastMessage": "",
+        "lastSenderId": "",
+        "lastMessageTime": FieldValue.serverTimestamp(),
+        "unreadCounts": {
+          currentUserId: 0,
+          receiverId: 0,
+        },
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+    }
+
+    return chatId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +97,7 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _header(context),
+              _header(),
               const SizedBox(height: 28),
               _filters(),
               const SizedBox(height: 26),
@@ -56,10 +113,10 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
     );
   }
 
-  Widget _header(BuildContext context) {
-    return Row(
+  Widget _header() {
+    return const Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -96,11 +153,7 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
     final selected = filter == title;
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          filter = title;
-        });
-      },
+      onTap: () => setState(() => filter = title),
       child: Container(
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
@@ -137,7 +190,7 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
 
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>? ?? {};
-            final status = data["status"]?.toString() ?? "In Progress";
+            final status = _normalizeStatus(data["status"]);
 
             if (status == "In Progress") {
               inProgress++;
@@ -150,24 +203,11 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _stat(
-              "$inProgress",
-              "Progress",
-              const Color(0xffD97706),
-              const Color(0xffFEFCE8),
-            ),
-            _stat(
-              "$completed",
-              "Completed",
-              const Color(0xff16A34A),
-              const Color(0xffDCFCE7),
-            ),
-            _stat(
-              "$total",
-              "Total",
-              primaryColor,
-              const Color(0xffFAF5FF),
-            ),
+            _stat("$inProgress", "Progress", const Color(0xffD97706),
+                const Color(0xffFEFCE8)),
+            _stat("$completed", "Completed", const Color(0xff16A34A),
+                const Color(0xffDCFCE7)),
+            _stat("$total", "Total", primaryColor, const Color(0xffFAF5FF)),
           ],
         );
       },
@@ -204,17 +244,70 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
   }
 
   Widget _historyTitle() {
-    return const Row(
+    return Row(
       children: [
-        Expanded(
+        const Expanded(
           child: Text(
             "Request History",
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
-        Text(
-          "Sort by: Latest",
-          style: TextStyle(color: Color(0xff475569), fontSize: 13),
+        Row(
+          children: [
+            const Text(
+              "Sort by",
+              style: TextStyle(
+                color: Color(0xff64748B),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xffFAF5FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xffE9D5FF)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: sortBy,
+                  isDense: true,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: primaryColor,
+                    size: 20,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(
+                    color: Color(0xff1E293B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: "Latest", child: Text("Latest")),
+                    DropdownMenuItem(value: "Oldest", child: Text("Oldest")),
+                    DropdownMenuItem(
+                      value: "Posted Date",
+                      child: Text("Posted Date"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Title A-Z",
+                      child: Text("Title A-Z"),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => sortBy = value);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -249,7 +342,7 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
         if (filter != "All Requests") {
           docs = docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>? ?? {};
-            final status = data["status"]?.toString() ?? "In Progress";
+            final status = _normalizeStatus(data["status"]);
             return status == filter;
           }).toList();
         }
@@ -258,10 +351,17 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
           final aData = a.data() as Map<String, dynamic>? ?? {};
           final bData = b.data() as Map<String, dynamic>? ?? {};
 
+          if (sortBy == "Title A-Z") {
+            final aTitle = aData["title"]?.toString().toLowerCase() ?? "";
+            final bTitle = bData["title"]?.toString().toLowerCase() ?? "";
+            return aTitle.compareTo(bTitle);
+          }
+
           final aTime = aData["createdAt"];
           final bTime = bData["createdAt"];
 
           if (aTime is Timestamp && bTime is Timestamp) {
+            if (sortBy == "Oldest") return aTime.compareTo(bTime);
             return bTime.compareTo(aTime);
           }
 
@@ -295,8 +395,13 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
             final title = data["title"]?.toString() ?? "Untitled Request";
             final description = data["description"]?.toString() ?? "";
             final skill = data["skill"]?.toString() ?? "Q";
-            final status = data["status"]?.toString() ?? "In Progress";
+            final status = _normalizeStatus(data["status"]);
+
+            final expertId = data["expertId"]?.toString() ?? "";
             final expertName = data["expertName"]?.toString() ?? "";
+
+            final bool isAcceptedByExpert =
+                status == "In Progress" && expertId.isNotEmpty;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -334,7 +439,7 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
                                 ),
                               ),
                             ),
-                            _statusChip(status),
+                            _statusChip(status: status),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -349,9 +454,9 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          expertName.isEmpty
-                              ? "Waiting for expert"
-                              : "Expert: $expertName",
+                          isAcceptedByExpert
+                              ? "Expert: ${expertName.isEmpty ? "Expert" : expertName}"
+                              : "Waiting for expert",
                           style: const TextStyle(
                             color: Color(0xff64748B),
                             fontSize: 12,
@@ -359,27 +464,52 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Row(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Color(0xff94A3B8),
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                _getTimeText(data["createdAt"]),
-                                style: const TextStyle(
-                                  color: Color(0xff64748B),
-                                  fontSize: 12,
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time,
+                                  size: 16,
+                                  color: Color(0xff94A3B8),
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    _getTimeText(data["createdAt"]),
+                                    style: const TextStyle(
+                                      color: Color(0xff64748B),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            if (status == "Completed")
-                              _reviewButton(doc.id, data),
+
+                            if (isAcceptedByExpert) ...[
+                              const SizedBox(height: 14),
+
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  _cancelButton(doc.id),
+                                  const SizedBox(width: 10),
+                                  _connectButton(data),
+                                ],
+                              ),
+                            ] else if (status == "Completed") ...[
+                              const SizedBox(height: 14),
+
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  _reviewButton(doc.id, data),
+                                ],
+                              ),
+                            ],
                           ],
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -387,6 +517,216 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
               ),
             );
           }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _connectButton(Map<String, dynamic> data) {
+    final expertId = data["expertId"]?.toString() ?? "";
+    String expertName = data["expertName"]?.toString() ?? "";
+    final user = currentUser;
+
+    return GestureDetector(
+      onTap: () async {
+        if (user == null || expertId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Expert details not found")),
+          );
+          return;
+        }
+
+        if (expertName.isEmpty) {
+          final expertDoc = await FirebaseFirestore.instance
+              .collection("experts")
+              .doc(expertId)
+              .get();
+
+          final expertData = expertDoc.data() ?? {};
+          expertName = expertData["name"]?.toString() ??
+              expertData["expertName"]?.toString() ??
+              "Expert";
+        }
+
+        final chatId = await _createOrGetChatRoom(
+          currentUserId: user.uid,
+          receiverId: expertId,
+          receiverName: expertName,
+          receiverRole: "Expert",
+        );
+
+        if (!mounted) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatDetailScreen(
+              chatId: chatId,
+              receiverId: expertId,
+              receiverName: expertName,
+              receiverRole: "Expert",
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: primaryColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          "Connect",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cancelButton(String requestId) {
+    return GestureDetector(
+      onTap: () => _showCancelConfirmation(requestId),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xffFEE2E2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          "Cancel",
+          style: TextStyle(
+            color: Color(0xffDC2626),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCancelConfirmation(String requestId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  height: 74,
+                  width: 74,
+                  decoration: const BoxDecoration(
+                    color: Color(0xffFEF2F2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xffEF4444),
+                    size: 42,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Cancel Request?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff111827),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Are you sure you want to cancel this expert and open the request to other experts?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xff6B7280),
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xffE5E7EB)),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "No",
+                          style: TextStyle(
+                            color: Color(0xff374151),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xffEF4444),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await FirebaseFirestore.instance
+                              .collection("requests")
+                              .doc(requestId)
+                              .update({
+                            "status": "In Progress",
+                            "expertId": FieldValue.delete(),
+                            "expertName": FieldValue.delete(),
+                            "acceptedAt": FieldValue.delete(),
+                            "updatedAt": FieldValue.serverTimestamp(),
+                          });
+
+                          if (!mounted) return;
+
+                          Navigator.pop(context);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Request opened to other experts"),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Yes",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -402,9 +742,7 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ReviewPage(
-                    requestId: requestId,
-                  ),
+                  builder: (_) => ReviewPage(requestId: requestId),
                 ),
               );
             },
@@ -443,13 +781,19 @@ class _UserRequestsScreenState extends State<UserRequestsScreen> {
     }
   }
 
-  Widget _statusChip(String status) {
+  Widget _statusChip({required String status}) {
     Color bg = const Color(0xffFEF3C7);
     Color color = const Color(0xffD97706);
 
-    if (status == "Completed") {
+    if (status == "In Progress") {
+      bg = const Color(0xffDBEAFE);
+      color = const Color(0xff2563EB);
+    } else if (status == "Completed") {
       bg = const Color(0xffDCFCE7);
       color = const Color(0xff16A34A);
+    } else if (status == "Cancelled") {
+      bg = const Color(0xffFEE2E2);
+      color = const Color(0xffDC2626);
     }
 
     return Container(

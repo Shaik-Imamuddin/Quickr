@@ -349,6 +349,12 @@ class EventsPage extends StatelessWidget {
 
     await FirebaseFirestore.instance.collection("events").doc(eventId).set({
       "registrationCount": FieldValue.increment(1),
+      "registeredUsers": FieldValue.arrayUnion([
+        {
+          "userId": user.uid,
+          "userName": userData["name"] ?? "User",
+        }
+      ]),
     }, SetOptions(merge: true));
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -482,6 +488,13 @@ class EventsPage extends StatelessWidget {
 
     await FirebaseFirestore.instance.collection("events").doc(eventId).set({
       "registrationCount": FieldValue.increment(-1),
+
+      "registeredUsers": FieldValue.arrayRemove([
+        {
+          "userId": user.uid,
+          "userName": user.displayName ?? "User",
+        }
+      ]),
     }, SetOptions(merge: true));
 
     ScaffoldMessenger.of(context).showSnackBar(

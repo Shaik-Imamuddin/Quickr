@@ -329,40 +329,75 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           FirebaseFirestore.instance.collection("users").doc(uid).snapshots(),
       builder: (context, snapshot) {
         int total = 0;
-        int answered = 0;
 
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           total = _toInt(data["totalRequests"]);
-          answered = _toInt(data["answeredRequests"]);
         }
 
-        final satisfaction =
-            total == 0 ? 0 : ((answered / total) * 100).round();
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("expert_reviews")
+              .where("userId", isEqualTo: uid)
+              .snapshots(),
+          builder: (context, reviewSnapshot) {
+            double avgRating = 0;
+            int satisfaction = 0;
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _stat("$total", "Requests", primaryColor, const Color(0xffFAF5FF)),
-            _stat(
-              "5m",
-              "Avg time",
-              const Color(0xffDB2777),
-              const Color(0xffFDF2F8),
-            ),
-            _stat(
-              "4.9",
-              "Rating",
-              const Color(0xffD97706),
-              const Color(0xffFEFCE8),
-            ),
-            _stat(
-              "$satisfaction%",
-              "Satisfaction",
-              primaryColor,
-              const Color(0xffFAF5FF),
-            ),
-          ],
+            if (reviewSnapshot.hasData &&
+                reviewSnapshot.data!.docs.isNotEmpty) {
+              double totalRatings = 0;
+
+              for (var doc in reviewSnapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                final rating =
+                    (data["overallRating"] ?? 0).toDouble();
+
+                totalRatings += rating;
+              }
+
+              avgRating =
+                  totalRatings / reviewSnapshot.data!.docs.length;
+
+              satisfaction = ((avgRating / 5) * 100).round();
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _stat(
+                  "$total",
+                  "Requests",
+                  primaryColor,
+                  const Color(0xffFAF5FF),
+                ),
+
+                _stat(
+                  "5m",
+                  "Avg time",
+                  const Color(0xffDB2777),
+                  const Color(0xffFDF2F8),
+                ),
+
+                _stat(
+                  avgRating == 0
+                      ? "0"
+                      : avgRating.toStringAsFixed(1),
+                  "Rating",
+                  const Color(0xffD97706),
+                  const Color(0xffFEFCE8),
+                ),
+
+                _stat(
+                  "$satisfaction%",
+                  "Satisfaction",
+                  primaryColor,
+                  const Color(0xffFAF5FF),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -530,8 +565,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                     ),
                   ),
                   _statusChip(status),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.chevron_right, color: Color(0xff94A3B8)),
                 ],
               ),
             );
