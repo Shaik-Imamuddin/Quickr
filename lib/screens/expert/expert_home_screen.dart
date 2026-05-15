@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import './my_review_page.dart';
+import './my_events_page.dart';
+import './dummy1.dart';
+import './dummy2.dart';
+
 class ExpertHomeScreen extends StatefulWidget {
   const ExpertHomeScreen({super.key});
 
@@ -363,39 +368,58 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _action(
-          Icons.assignment_outlined,
-          "Browse\nRequests",
+          Icons.reviews_outlined,
+          "My\nReviews",
           () {
-            Navigator.pushNamed(context, "/expertRequests");
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ExpertMyReviewsPage(),
+              ),
+            );
           },
         ),
-        _action(
-          Icons.menu_book,
-          "My\nAvailability",
-          () async {
-            final doc = await FirebaseFirestore.instance
-                .collection("experts")
-                .doc(user!.uid)
-                .get();
 
-            final data = doc.data() ?? {};
-            final current = data["available"] ?? data["isOnline"] ?? true;
+        _action(
+          Icons.event_available_outlined,
+          "My\nEvents",
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ExpertMyEventsPage(),
+              ),
+            );
+          },
+        ),
 
-            await updateAvailability(!current);
+        _action(
+          Icons.account_balance_wallet_outlined,
+          "Earnings",
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ExpertDummyPageOne(
+                  title: "Earnings",
+                ),
+              ),
+            );
           },
         ),
+
         _action(
-          Icons.person,
-          "My Profile\nUpdate",
+          Icons.insights_outlined,
+          "Insights",
           () {
-            Navigator.pushNamed(context, "/expertProfile");
-          },
-        ),
-        _action(
-          Icons.monetization_on,
-          "My Coins\nView",
-          () {
-            Navigator.pushNamed(context, "/expertCoins");
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ExpertDummyPageTwo(
+                  title: "Insights",
+                ),
+              ),
+            );
           },
         ),
       ],

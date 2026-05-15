@@ -55,9 +55,7 @@ class _ExpertRequestsScreenState extends State<ExpertRequestsScreen> {
               _searchBar(),
               const SizedBox(height: 24),
               _filters(),
-              const SizedBox(height: 28),
-              _banner(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 34),
               _recentHeader(),
               const SizedBox(height: 14),
               _requestList(),
@@ -176,72 +174,87 @@ class _ExpertRequestsScreenState extends State<ExpertRequestsScreen> {
     );
   }
 
-  Widget _banner() {
-    return Container(
-      height: 132,
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xffFFB800), Color(0xffFF5A00)],
-        ),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 30,
-            backgroundColor: Color(0xffffd46b),
-            child: Text("🤝", style: TextStyle(fontSize: 28)),
-          ),
-          const SizedBox(width: 18),
-          const Expanded(
-            child: Text(
-              "Need expert\nhelp?\nPost a new request\nand get help from experts!",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Text(
-              "Find Request",
-              style: TextStyle(color: Color(0xffFF5A00)),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
   Widget _recentHeader() {
     return Row(
       children: [
         const Expanded(
           child: Text(
             "Recent Requests",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            setState(() {
-              sortBy = value;
-            });
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: "Latest", child: Text("Latest")),
-            PopupMenuItem(value: "Oldest", child: Text("Oldest")),
-            PopupMenuItem(value: "Posted Date", child: Text("Posted Date")),
-            PopupMenuItem(value: "Title A-Z", child: Text("Title A-Z")),
+
+        Row(
+          children: [
+            const Text(
+              "Sort by",
+              style: TextStyle(
+                color: Color(0xff64748B),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xffFFF8E6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xffFFE4A3),
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: sortBy,
+                  isDense: true,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: primaryColor,
+                    size: 20,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(
+                    color: Color(0xff1E293B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: "Latest",
+                      child: Text("Latest"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Oldest",
+                      child: Text("Oldest"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Posted Date",
+                      child: Text("Posted Date"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Title A-Z",
+                      child: Text("Title A-Z"),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        sortBy = value;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
           ],
-          child: Text(
-            "Sort by: $sortBy⌄",
-            style: const TextStyle(color: Color(0xff64748B)),
-          ),
         ),
       ],
     );
