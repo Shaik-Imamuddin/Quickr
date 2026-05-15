@@ -21,7 +21,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
   TimeOfDay? selectedEndTime;
+
   bool isLoading = false;
+  bool isEdit = false;
+  bool didLoadEditData = false;
+
+  String? editEventId;
 
   final List<String> eventTypes = [
     "Hackathon",
@@ -31,6 +36,70 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     "Webinar",
     "Bootcamp",
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (didLoadEditData) return;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+
+    if (args is Map<String, dynamic>) {
+      isEdit = args["isEdit"] == true;
+      editEventId = args["eventId"]?.toString();
+
+      final eventData = args["eventData"] as Map<String, dynamic>? ?? {};
+
+      titleController.text = eventData["title"]?.toString() ?? "";
+      descriptionController.text = eventData["description"]?.toString() ?? "";
+      prizeController.text = eventData["prize"]?.toString() ?? "";
+      joiningLinkController.text = eventData["joiningLink"]?.toString() ?? "";
+
+      selectedType = eventData["eventType"]?.toString() ?? "Hackathon";
+
+      final dateValue = eventData["date"];
+      if (dateValue is Timestamp) {
+        selectedDate = dateValue.toDate();
+      } else if (dateValue is DateTime) {
+        selectedDate = dateValue;
+      }
+
+      selectedTime = _parseTimeOfDay(eventData["time"]?.toString());
+      selectedEndTime = _parseTimeOfDay(eventData["endTime"]?.toString());
+    }
+
+    didLoadEditData = true;
+  }
+
+  TimeOfDay? _parseTimeOfDay(String? time) {
+    if (time == null || time.trim().isEmpty) return null;
+
+    try {
+      final cleanTime = time.trim();
+      final parts = cleanTime.split(" ");
+      final hm = parts[0].split(":");
+
+      int hour = int.parse(hm[0]);
+      int minute = int.parse(hm[1]);
+
+      if (parts.length > 1) {
+        final period = parts[1].toUpperCase();
+
+        if (period == "PM" && hour != 12) {
+          hour += 12;
+        }
+
+        if (period == "AM" && hour == 12) {
+          hour = 0;
+        }
+      }
+
+      return TimeOfDay(hour: hour, minute: minute);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void dispose() {
@@ -46,7 +115,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       context: context,
       firstDate: DateTime.now(),
       lastDate: DateTime(2035),
-      initialDate: DateTime.now(),
+      initialDate: selectedDate ?? DateTime.now(),
     );
 
     if (date != null) {
@@ -59,7 +128,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> pickTime() async {
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: selectedTime ?? TimeOfDay.now(),
     );
 
     if (time != null) {
@@ -72,7 +141,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> pickEndTime() async {
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: selectedEndTime ?? TimeOfDay.now(),
     );
 
     if (time != null) {
@@ -82,7 +151,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
-  Future<void> createEvent() async {
+  Future<void> saveEvent() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) return;
@@ -102,7 +171,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       isLoading = true;
     });
 
-    await FirebaseFirestore.instance.collection("events").add({
+    final eventData = {
       "expertId": user.uid,
       "title": titleController.text.trim(),
       "description": descriptionController.text.trim(),
@@ -112,17 +181,33 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       "endTime": selectedEndTime!.format(context),
       "prize": prizeController.text.trim(),
       "joiningLink": joiningLinkController.text.trim(),
-      "createdAt": FieldValue.serverTimestamp(),
       "status": "Active",
-    });
+      "updatedAt": FieldValue.serverTimestamp(),
+    };
+
+    if (isEdit && editEventId != null) {
+      await FirebaseFirestore.instance
+          .collection("events")
+          .doc(editEventId)
+          .update(eventData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event updated successfully")),
+      );
+    } else {
+      await FirebaseFirestore.instance.collection("events").add({
+        ...eventData,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event created successfully")),
+      );
+    }
 
     setState(() {
       isLoading = false;
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Event created successfully")),
-    );
 
     Navigator.pop(context);
   }
@@ -144,17 +229,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Create Event",
-                style: TextStyle(
+              Text(
+                isEdit ? "Edit Event" : "Create Event",
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                "Create hackathon, contest, workshop or seminar",
-                style: TextStyle(color: Color(0xff64748B)),
+              Text(
+                isEdit
+                    ? "Update your event details"
+                    : "Create hackathon, contest, workshop or seminar",
+                style: const TextStyle(color: Color(0xff64748B)),
               ),
               const SizedBox(height: 26),
 
@@ -204,12 +291,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  onPressed: isLoading ? null : createEvent,
+                  onPressed: isLoading ? null : saveEvent,
                   child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          "Create",
-                          style: TextStyle(
+                      : Text(
+                          isEdit ? "Save" : "Create",
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,

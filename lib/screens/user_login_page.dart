@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'user_main_page.dart';
 import './user_registration_page.dart';
+import './role_selection_page.dart';
 
 class UserLogin extends StatefulWidget {
   const UserLogin({super.key});
@@ -220,7 +221,15 @@ class _UserLoginState extends State<UserLogin> {
                             Icons.arrow_back,
                             color: Colors.black,
                           ),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RoleSelectionPage(),
+                              ),
+                              (route) => false,
+                            );
+                          },
                         ),
                       ),
                     ),
