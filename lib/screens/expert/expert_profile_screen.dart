@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import './expert_completed_requestes.dart';
+
 class ExpertProfileScreen extends StatefulWidget {
   const ExpertProfileScreen({super.key});
 
@@ -22,6 +24,14 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
       "/expertLogin",
       (route) => false,
     );
+  }
+
+  double _getDoubleValue(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   void openProfileEditSheet({
@@ -186,102 +196,6 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
             ),
           );
         }
-      },
-    );
-  }
-
-  void openPrivacySheet({
-    required String uid,
-    required Map<String, dynamic> data,
-  }) {
-    bool profileVisible = data["profileVisible"] ?? true;
-    bool availabilityVisible = data["availabilityVisible"] ?? true;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-      ),
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Privacy Settings",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  SwitchListTile(
-                    value: profileVisible,
-                    activeColor: primaryColor,
-                    title: const Text("Profile Visible"),
-                    subtitle: const Text("Allow users to view your profile"),
-                    onChanged: (value) {
-                      setModalState(() {
-                        profileVisible = value;
-                      });
-                    },
-                  ),
-                  SwitchListTile(
-                    value: availabilityVisible,
-                    activeColor: primaryColor,
-                    title: const Text("Availability Visible"),
-                    subtitle: const Text("Show your online/offline status"),
-                    onChanged: (value) {
-                      setModalState(() {
-                        availabilityVisible = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      onPressed: () async {
-                        await FirebaseFirestore.instance
-                            .collection("experts")
-                            .doc(uid)
-                            .update({
-                          "profileVisible": profileVisible,
-                          "availabilityVisible": availabilityVisible,
-                          "updatedAt": FieldValue.serverTimestamp(),
-                        });
-
-                        if (mounted) Navigator.pop(context);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Privacy settings updated"),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        "Save Privacy Settings",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            );
-          },
-        );
       },
     );
   }
@@ -557,19 +471,16 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
                     onTap: openChangePasswordSheet,
                   ),
                   _menuItem(
-                    icon: Icons.privacy_tip_outlined,
-                    title: "Privacy Settings",
-                    subtitle: "Manage your profile visibility",
-                    onTap: () {
-                      openPrivacySheet(uid: user.uid, data: data);
-                    },
-                  ),
-                  _menuItem(
                     icon: Icons.bar_chart_outlined,
                     title: "My Activity",
-                    subtitle: "View accepted and completed requests",
+                    subtitle: "View completed requests",
                     onTap: () {
-                      Navigator.pushNamed(context, "/expertRequests");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ExpertCompletedActivityPage(),
+                        ),
+                      );
                     },
                   ),
                   _premiumSection(
@@ -886,36 +797,97 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
           .collection("requests")
           .where("expertId", isEqualTo: uid)
           .snapshots(),
-      builder: (context, snapshot) {
-        int today = 0;
-        int completed = 0;
+      builder: (context, requestSnapshot) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("expert_reviews")
+              .snapshots(),
+          builder: (context, reviewSnapshot) {
+            int today = 0;
+            int completed = 0;
+            double rating = 0.0;
 
-        if (snapshot.hasData) {
-          final docs = snapshot.data!.docs;
-          today = docs.length;
+            if (requestSnapshot.hasData) {
+              final docs = requestSnapshot.data!.docs;
+              today = docs.length;
 
-          for (var doc in docs) {
-            final data = doc.data() as Map<String, dynamic>? ?? {};
-            if (data["status"] == "Completed") {
-              completed++;
+              for (var doc in docs) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+                if (data["status"] == "Completed") {
+                  completed++;
+                }
+              }
             }
-          }
-        }
 
-        return Row(
-          children: [
-            Expanded(child: _statBox("💰", "\$${today * 100}+", "Today")),
-            const SizedBox(width: 6),
-            Expanded(child: _statBox("💵", "\$${completed * 100}+", "This Week")),
-            const SizedBox(width: 6),
-            Expanded(child: _statBox("⭐", "4.9", "Rating")),
-            const SizedBox(width: 6),
-            Expanded(child: _statBox("📊", "\$${completed * 100}", "Earned")),
-          ],
+            if (reviewSnapshot.hasData) {
+              final myReviews = reviewSnapshot.data!.docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                final reviewExpertId = data["expertId"] ??
+                    data["expertUid"] ??
+                    data["toExpertId"] ??
+                    data["reviewTo"] ??
+                    data["reviewedExpertId"] ??
+                    data["receiverId"];
+
+                return reviewExpertId?.toString() == uid;
+              }).toList();
+
+              if (myReviews.isNotEmpty) {
+                double totalRating = 0;
+
+                for (var doc in myReviews) {
+                  final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                  totalRating += _getDoubleValue(
+                    data["overallRating"] ??
+                      data["rating"] ??
+                      data["stars"] ??
+                      data["starRating"] ??
+                      data["reviewRating"] ??
+                      data["rate"] ??
+                      data["ratingValue"],
+                  );
+                }
+
+                rating = totalRating / myReviews.length;
+              }
+            }
+
+            return Row(
+              children: [
+                Expanded(child: _statBox("💰", "\$${today * 100}+", "Today")),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _statBox(
+                    "💵",
+                    "\$${completed * 100}+",
+                    "This Week",
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _statBox(
+                    "⭐",
+                    rating == 0.0 ? "0.0" : rating.toStringAsFixed(1),
+                    "Rating",
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _statBox(
+                    "📊",
+                    "\$${completed * 100}",
+                    "Earned",
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-    }
+  }
 
   Widget _statBox(String emoji, String value, String title) {
     return Container(

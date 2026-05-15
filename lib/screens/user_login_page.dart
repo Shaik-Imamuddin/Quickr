@@ -57,11 +57,12 @@ class _UserLoginState extends State<UserLogin> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (context) => const UserMainScreen(),
         ),
+        (Route<dynamic> route) => false,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,11 +109,12 @@ class _UserLoginState extends State<UserLogin> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (context) => const UserMainScreen(),
         ),
+        (Route<dynamic> route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -195,6 +197,7 @@ class _UserLoginState extends State<UserLogin> {
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -225,9 +228,10 @@ class _UserLoginState extends State<UserLogin> {
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const RoleSelectionPage(),
+                                builder: (context) =>
+                                    const RoleSelectionPage(),
                               ),
-                              (route) => false,
+                              (Route<dynamic> route) => false,
                             );
                           },
                         ),
@@ -270,7 +274,6 @@ class _UserLoginState extends State<UserLogin> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
               child: Column(
@@ -284,9 +287,7 @@ class _UserLoginState extends State<UserLogin> {
                     hint: "Password",
                     isPassword: true,
                   ),
-
                   const SizedBox(height: 10),
-
                   SizedBox(
                     width: 300,
                     height: 48,
@@ -320,16 +321,12 @@ class _UserLoginState extends State<UserLogin> {
                             ),
                     ),
                   ),
-
                   const SizedBox(height: 25),
-
                   const Text(
                     "or continue with",
                     style: TextStyle(color: Colors.grey),
                   ),
-
                   const SizedBox(height: 20),
-
                   Row(
                     children: [
                       socialButton(
@@ -351,9 +348,7 @@ class _UserLoginState extends State<UserLogin> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 25),
-
                   GestureDetector(
                     onTap: () {
                       Navigator.push(

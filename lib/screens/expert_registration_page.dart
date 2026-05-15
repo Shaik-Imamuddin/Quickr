@@ -63,6 +63,13 @@ class _ExpertRegistrationPageState extends State<ExpertRegistrationPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Expert account created successfully")),
       );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ExpertLogin(),
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),

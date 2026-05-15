@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import './my_review_page.dart';
 import './my_events_page.dart';
-import './dummy1.dart';
-import './dummy2.dart';
+import 'my_leaderboard.dart';
+import 'my_achievements.dart';
 
 class ExpertHomeScreen extends StatefulWidget {
   const ExpertHomeScreen({super.key});
@@ -25,6 +25,14 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
       "status": value ? "Online" : "Offline",
       "updatedAt": FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  double _getDoubleValue(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   @override
@@ -261,56 +269,103 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
           .collection("requests")
           .where("expertId", isEqualTo: user!.uid)
           .snapshots(),
-      builder: (context, snapshot) {
-        int today = 0;
-        int completed = 0;
+      builder: (context, requestSnapshot) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("expert_reviews")
+              .snapshots(),
+          builder: (context, reviewSnapshot) {
+            int today = 0;
+            int completed = 0;
+            double rating = 0.0;
 
-        if (snapshot.hasData) {
-          final docs = snapshot.data!.docs;
-          today = docs.length;
+            if (requestSnapshot.hasData) {
+              final docs = requestSnapshot.data!.docs;
+              today = docs.length;
 
-          for (var doc in docs) {
-            final data = doc.data() as Map<String, dynamic>? ?? {};
-            if (data["status"] == "Completed") {
-              completed++;
+              for (var doc in docs) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                if (data["status"] == "Completed") {
+                  completed++;
+                }
+              }
             }
-          }
-        }
 
-        return Row(
-          children: [
-            Expanded(
-              child: _statBox(
-                "💰",
-                "\$${today * 100}+",
-                "Today",
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _statBox(
-                "💵",
-                "\$${completed * 100}+",
-                "Week",
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _statBox(
-                "⭐",
-                "4.9",
-                "Rating",
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _statBox(
-                "📊",
-                "\$${completed * 100}",
-                "Earned",
-              ),
-            ),
-          ],
+            if (reviewSnapshot.hasData) {
+              final myReviews = reviewSnapshot.data!.docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                final reviewExpertId = data["expertId"] ??
+                    data["expertUid"] ??
+                    data["toExpertId"] ??
+                    data["reviewTo"] ??
+                    data["reviewedExpertId"] ??
+                    data["receiverId"];
+
+                return reviewExpertId?.toString() == user!.uid;
+              }).toList();
+
+              if (myReviews.isNotEmpty) {
+                double totalRating = 0;
+
+                for (var doc in myReviews) {
+                  final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                  totalRating += _getDoubleValue(
+                    data["overallRating"] ??
+                      data["rating"] ??
+                      data["stars"] ??
+                      data["starRating"] ??
+                      data["reviewRating"] ??
+                      data["rate"] ??
+                      data["ratingValue"],
+                  );
+                }
+
+                rating = totalRating / myReviews.length;
+              }
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _statBox(
+                    "💰",
+                    "\$${today * 100}+",
+                    "Today",
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                Expanded(
+                  child: _statBox(
+                    "💵",
+                    "\$${completed * 100}+",
+                    "Week",
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                Expanded(
+                  child: _statBox(
+                    "⭐",
+                    rating == 0.0 ? "0.0" : rating.toStringAsFixed(1),
+                    "Rating",
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                Expanded(
+                  child: _statBox(
+                    "📊",
+                    "\$${completed * 100}",
+                    "Earned",
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -394,14 +449,14 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
         ),
 
         _action(
-          Icons.account_balance_wallet_outlined,
-          "Earnings",
+          Icons.leaderboard_outlined,
+          "My\nLeaderboard",
           () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const ExpertDummyPageOne(
-                  title: "Earnings",
+                builder: (_) => const ExpertLeaderboard(
+                  title: "My Leaderboard",
                 ),
               ),
             );
@@ -409,14 +464,14 @@ class _ExpertHomeScreenState extends State<ExpertHomeScreen> {
         ),
 
         _action(
-          Icons.insights_outlined,
-          "Insights",
+          Icons.emoji_events_outlined,
+          "My\nAchievements",
           () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const ExpertDummyPageTwo(
-                  title: "Insights",
+                builder: (_) => const ExpertAchievementsPage(
+                  title: "Achievements",
                 ),
               ),
             );

@@ -108,11 +108,12 @@ class _ExpertLoginState extends State<ExpertLogin> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (context) => const ExpertProfilePage(),
         ),
+        (Route<dynamic> route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -225,7 +226,7 @@ class _ExpertLoginState extends State<ExpertLogin> {
                               MaterialPageRoute(
                                 builder: (context) => const RoleSelectionPage(),
                               ),
-                              (route) => false,
+                              (Route<dynamic> route) => false,
                             );
                           },
                         ),

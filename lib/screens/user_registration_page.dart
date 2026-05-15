@@ -65,6 +65,12 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("User account created successfully")),
       );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const UserLogin(),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
