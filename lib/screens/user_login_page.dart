@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'user_profile_page.dart';
+import 'user_main_page.dart';
+import './user_registration_page.dart';
+import './role_selection_page.dart';
 
 class UserLogin extends StatefulWidget {
   const UserLogin({super.key});
@@ -58,7 +60,7 @@ class _UserLoginState extends State<UserLogin> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const UserProfilePage(),
+          builder: (context) => const UserMainScreen(),
         ),
       );
     } catch (e) {
@@ -109,7 +111,7 @@ class _UserLoginState extends State<UserLogin> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const UserProfilePage(),
+          builder: (context) => const UserMainScreen(),
         ),
       );
     } catch (e) {
@@ -199,7 +201,13 @@ class _UserLoginState extends State<UserLogin> {
           children: [
             Container(
               height: 350,
-              color: Colors.white,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEDE9FF),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(45),
+                  bottomRight: Radius.circular(45),
+                ),
+              ),
               child: SafeArea(
                 child: Stack(
                   children: [
@@ -213,7 +221,15 @@ class _UserLoginState extends State<UserLogin> {
                             Icons.arrow_back,
                             color: Colors.black,
                           ),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RoleSelectionPage(),
+                              ),
+                              (route) => false,
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -339,7 +355,14 @@ class _UserLoginState extends State<UserLogin> {
                   const SizedBox(height: 25),
 
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const UserRegistrationPage(),
+                        ),
+                      );
+                    },
                     child: Text.rich(
                       TextSpan(
                         text: "Don’t have an account? ",

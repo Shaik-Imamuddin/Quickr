@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
-import './expert/expert_home_screen.dart';
-import './expert/expert_messages_screen.dart';
-import './expert/expert_profile_screen.dart';
-import './expert/expert_requests_screen.dart';
+import './user/user_home_screen.dart';
+import './user/user_chat_screen.dart';
+import './user/user_request_screen.dart';
+import './user/user_profile_screen.dart';
+import './ask_question.dart';
 
-class ExpertProfilePage extends StatefulWidget {
-  const ExpertProfilePage({super.key});
+class UserMainScreen extends StatefulWidget {
+  const UserMainScreen({super.key});
 
   @override
-  State<ExpertProfilePage> createState() => _ExpertMainScreenState();
+  State<UserMainScreen> createState() => _UserMainScreenState();
 }
 
-class _ExpertMainScreenState extends State<ExpertProfilePage> {
+class _UserMainScreenState extends State<UserMainScreen> {
   int selectedIndex = 0;
-  final Color primaryColor = const Color(0xffF5A400);
+  final Color primaryColor = const Color(0xffA020F0);
 
   final pages = const [
-    ExpertHomeScreen(),
-    ExpertMessagesScreen(),
-    ExpertRequestsScreen(),
-    ExpertProfileScreen(),
+    UserHomeScreen(),
+    UserChatScreen(),
+    UserRequestsScreen(),
+    UserProfileScreen(),
   ];
 
   @override
@@ -29,26 +30,31 @@ class _ExpertMainScreenState extends State<ExpertProfilePage> {
 
       floatingActionButton: GestureDetector(
         onTap: () {
-          Navigator.pushNamed(context, "/coinEarning");
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AskQuestionScreen(),
+            ),
+          );
         },
         child: Container(
           height: 62,
           width: 62,
           decoration: BoxDecoration(
-            color: primaryColor,
             shape: BoxShape.circle,
+            color: primaryColor,
             boxShadow: [
               BoxShadow(
-                color: primaryColor.withOpacity(0.35),
+                color: primaryColor.withOpacity(0.4),
                 blurRadius: 12,
                 offset: const Offset(0, 5),
               ),
             ],
           ),
           child: const Icon(
-            Icons.work_history,
+            Icons.add_circle_outline,
             color: Colors.white,
-            size: 30,
+            size: 34,
           ),
         ),
       ),
@@ -56,10 +62,10 @@ class _ExpertMainScreenState extends State<ExpertProfilePage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
-        elevation: 12,
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
+        elevation: 12,
+        color: Colors.white,
         child: SizedBox(
           height: 70,
           child: Row(
@@ -81,7 +87,11 @@ class _ExpertMainScreenState extends State<ExpertProfilePage> {
     final selected = selectedIndex == index;
 
     return GestureDetector(
-      onTap: () => setState(() => selectedIndex = index),
+      onTap: () {
+        setState(() {
+          selectedIndex = index;
+        });
+      },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

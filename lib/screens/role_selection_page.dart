@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'user_registration_page.dart';
-import 'expert_registration_page.dart';
+import './user_login_page.dart';
+import './expert_login_page.dart';
 
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
@@ -51,7 +51,7 @@ class RoleSelectionPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              const UserRegistrationPage(),
+                              const UserLogin(),
                         ),
                       );
                     },
@@ -70,7 +70,7 @@ class RoleSelectionPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              const ExpertRegistrationPage(),
+                              const ExpertLogin(),
                         ),
                       );
                     },
